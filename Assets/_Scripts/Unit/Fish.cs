@@ -5,8 +5,10 @@ using UnityEngine;
 
 public class Fish : MonoBehaviour
 {
+    [Header("Data")]
+    public FishData Data;
+    [Header("Dependencies")]
     [SerializeField] private FishSpawner _fishSpawner;
-    [SerializeField] private float _moveSpeed = 5f;
     [SerializeField] private Transform _lastMovePoint;
 
     private void Awake()
@@ -17,15 +19,25 @@ public class Fish : MonoBehaviour
         }   
     }
 
-    private void Start()
+    // This method will be called by the spawner right after the fish is created
+    public void Setup(FishData data, FishSpawner fishSpawner)
     {
-        LookAtMovePoint(_lastMovePoint.position);
+        Data = data;
+        _fishSpawner = fishSpawner;
+
+        // Get the data from the SO
+        var spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null && Data.Sprite != null)
+        {
+            spriteRenderer.sprite = Data.Sprite;
+        }
+
     }
 
     private void Update()
     {
+        if (Data == null || _lastMovePoint == null) return;
         Move();
-        // LookAtMovePoint();
         if (transform.position == _lastMovePoint.position)
         {
             _fishSpawner.ReturnFishToPool(this);
@@ -39,7 +51,7 @@ public class Fish : MonoBehaviour
         {
             return;
         }
-        Vector3 point = Vector3.MoveTowards(transform.position, _lastMovePoint.position, _moveSpeed * Time.deltaTime);
+        Vector3 point = Vector3.MoveTowards(transform.position, _lastMovePoint.position, Data.MoveSpeed * Time.deltaTime);
         LookAtMovePoint(point);
         transform.position = point;
     }
@@ -52,6 +64,11 @@ public class Fish : MonoBehaviour
     public void SetMovePoint(Transform movePoint)
     {
         _lastMovePoint = movePoint;
+
+        if (_lastMovePoint != null)
+        {
+            LookAtMovePoint(_lastMovePoint.position);
+        }
     }
     
 }

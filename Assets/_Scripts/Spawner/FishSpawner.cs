@@ -4,32 +4,42 @@ using UnityEngine;
 
 public class FishSpawner : MonoBehaviour
 {
-    [SerializeField] private List<Fish> _fishPrefabs;
+    [SerializeField] private List<FishData> _fishTypes;
     [SerializeField] private Transform _fishHolder;
     [Header("Pool")]
     [SerializeField] private List<Fish> _pool;
 
     private void Start()
     {
+        if (_pool == null)
+        {
         _pool = new List<Fish>();
+        }
     }
 
     public Fish SpawnFish(Transform spawnPoint, Transform movePoint)
     {
+        if (_fishTypes.Count == 0)
+        {
+            Debug.LogError("No FishData", this);
+            return null;
+        }
+        FishData selectedData = _fishTypes[Random.Range(0, _fishTypes.Count)];
         Fish fish = GetFishFromPool();
         if (fish == null)
         {
-            int ran = Random.Range(0, _fishPrefabs.Count * 2);
-            if (ran >= _fishPrefabs.Count)
+            Fish fishPrefab = selectedData.FishPrefab;
+            if (fishPrefab == null)
             {
-                ran = 0;
+                Debug.LogError("FishPrefab is null", this);
+                return null;
             }
-            Fish fishPrefab = _fishPrefabs[ran];
             fish = Instantiate(fishPrefab, spawnPoint.position, Quaternion.identity, _fishHolder);
-            fish.gameObject.name = "Fish-" + _pool.Count;
             _pool.Add(fish);
         }
+        fish.gameObject.name = selectedData.FishName;
         fish.transform.position = spawnPoint.position;
+        fish.Setup(selectedData, this);
         fish.SetMovePoint(movePoint);
         fish.gameObject.SetActive(true);
         return fish;
@@ -37,11 +47,11 @@ public class FishSpawner : MonoBehaviour
 
     private Fish GetFishFromPool()
     {
-        for (int i = 0; i < _pool.Count; i++)
+        foreach (var fish in _pool)
         {
-            if (!_pool[i].isActiveAndEnabled)
+            if (!fish.gameObject.activeInHierarchy )
             {
-                return _pool[i];
+                return fish;
             }
         }
         return null;
@@ -54,9 +64,13 @@ public class FishSpawner : MonoBehaviour
 
     public void ReturnAllFishToPool()
     {
-        for (int i = 0; i < _pool.Count; i++)
+        foreach (var fish in _pool)
         {
-            _pool[i].gameObject.SetActive(false);
+            if (fish != null && fish.gameObject != null)
+            {
+                fish.gameObject.SetActive(false);
+            }
         }
+
     }
 }

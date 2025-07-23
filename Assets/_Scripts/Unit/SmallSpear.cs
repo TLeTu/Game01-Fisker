@@ -29,23 +29,37 @@ public class SmallSpear : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("DestinationPoint"))
         {
-            gameObject.SetActive(false);
-
-            if (destinationPoint.fishIn)
+            if (destinationPoint.fishIn && destinationPoint.CaughtFish != null)
             {
-                destinationPoint.fishIn = false;
-                destinationPoint.DespawnFish();
-                collision.gameObject.SetActive(false);
+                // --- LOGIC FIRST ---
+                // 1. Get data from the fish before doing anything else.
+                int scoreFromFish = destinationPoint.CaughtFish.Data.ScoreValue;
+                Fish caughtFishObject = destinationPoint.CaughtFish;
+
+                // 2. Update the score.
+                GameManager.Instance.Score += scoreFromFish;
+
+                // 3. Tell the SpearManager to respawn the spear.
                 spearManager.spearLanded = true;
-                Debug.Log("Fish in");
-                GameManager.Instance.Score++;
+                Debug.Log($"Caught a {caughtFishObject.Data.FishName}! Gained {scoreFromFish} points.");
+
+                // --- DEACTIVATIONS LAST ---
+                // 4. Deactivate the fish that was caught.
+                caughtFishObject.gameObject.SetActive(false);
+
+                // 5. Deactivate the destination point.
+                collision.gameObject.SetActive(false);
             }
             else
             {
+                // This is a miss.
                 spearManager.spearLanded = true;
                 collision.gameObject.SetActive(false);
-                Debug.Log("Fish out");
+                Debug.Log("Missed!");
             }
+
+            // Deactivate the spear itself now that all logic for this frame is done.
+            gameObject.SetActive(false);
         }
     }
 }

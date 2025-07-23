@@ -6,6 +6,6 @@ public class RestartBtn : BaseBtn
 {
     public override void OnClick()
     {
-        GameManager.Instance.ChangeGameState(GameState.Restart);
+        GameManager.Instance.RestartGame();
     }
 }

@@ -6,100 +6,62 @@ using UnityEngine;
 
 public class GameManager : Singleton<GameManager>
 {
-    [SerializeField] private FishSpawner _fishSpawner;
-    [SerializeField] private BaseText _timeText;
-    [SerializeField] private BaseText _scoreText;
-    [SerializeField] private BaseText _highScoreText;
-    [SerializeField] private BaseText _endScoreText;
-    [SerializeField] private GameObject _gameEnvironment;
-    [SerializeField] private Canvas _mainMenuCanvas;
-    [SerializeField] private Canvas _inGameCanvas;
-    [SerializeField] private Canvas _gameOverCanvas;
-    [SerializeField] private GameState _gameState;
-    [SerializeField] private int _score;
-    [SerializeField] private float _time = 100;
+    [field: SerializeField] public FishSpawner FishSpawner;
+    [field: SerializeField] public BaseText TimeText {get; private set;}
+    [field: SerializeField] public BaseText ScoreText {get; private set;}
+    [field: SerializeField] public BaseText HighScoreText {get; private set;}
+    [field: SerializeField] public BaseText EndScoreText {get; private set;}
+    [field: SerializeField] public GameObject GameEnvironment {get; private set;}
+    [field: SerializeField] public Canvas MainMenuCanvas {get; private set;}
+    [field: SerializeField] public Canvas InGameCanvas {get; private set;}
+    [field: SerializeField] public Canvas GameOverCanvas {get; private set;}
+    
+    public int Score { get ; set; }
+    public float Time { get; set; }
     [SerializeField] private float _defaultTime = 100;
 
-    public GameState GameState => _gameState;
-    public int Score { get => _score; set => _score = value; }
-    public float Time { get => _time; set => _time = value; }
-
-    public void ChangeGameState(GameState newState)
-    {
-        if (_gameState == newState) return;
-
-        _gameState = newState;
-        switch (_gameState)
-        {
-            case GameState.MainMenu:
-                Debug.Log(PlayerPrefs.GetInt("HighScore", 0));
-                _highScoreText.Text.text = "HIGH SCORE: " + PlayerPrefs.GetInt("HighScore", 0).ToString();
-                _mainMenuCanvas.gameObject.SetActive(true);
-                _gameEnvironment.SetActive(false);
-                break;
-            case GameState.Pause:
-                UnityEngine.Time.timeScale = 0;
-                break;
-            case GameState.InGame:
-                UnityEngine.Time.timeScale = 1;
-                _mainMenuCanvas.gameObject.SetActive(false);
-                _gameEnvironment.SetActive(true);
-                break;
-            case GameState.GameOver:
-                if (_score > PlayerPrefs.GetInt("HighScore", 0))
-                {
-                    PlayerPrefs.SetInt("HighScore", _score);
-                }
-                _endScoreText.Text.text = "SCORE: " + _score.ToString();
-                _gameOverCanvas.gameObject.SetActive(true);
-                _gameEnvironment.SetActive(false);
-                _inGameCanvas.gameObject.SetActive(false);
-                UnityEngine.Time.timeScale = 0;
-                break;
-            case GameState.Restart:
-                UnityEngine.Time.timeScale = 1;
-                _gameOverCanvas.gameObject.SetActive(false);
-                _gameEnvironment.SetActive(true);
-                _inGameCanvas.gameObject.SetActive(true);
-                _time = _defaultTime;
-                _score = 0;
-                _fishSpawner.ReturnAllFishToPool();
-                ChangeGameState(GameState.InGame);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
+    private IGameState _currentState;
 
     private void Start()
     {
-        _time = _defaultTime;
-        Debug.Log(PlayerPrefs.GetInt("HighScore", 0));
-        _highScoreText.Text.text = "HIGH SCORE: " + PlayerPrefs.GetInt("HighScore", 0).ToString();
-        ChangeGameState(GameState.MainMenu);
+        // Initialize the game by transitioning to the MainMenuState.
+        ChangeState(new MainMenuState(this));
     }
 
     private void Update()
     {
-        if (_gameState == GameState.InGame)
-        {
-            _time -= UnityEngine.Time.deltaTime;
-            _timeText.Text.text = "Time: " + Mathf.Round(_time).ToString();
-            _scoreText.Text.text = "Score: " + _score.ToString();
-            if (_time <= 0)
-            {
-                ChangeGameState(GameState.GameOver);
-            }
-        }
+        _currentState?.Update();
+        // Log out the current stae
+        
     }
-}
 
-[Serializable]
-public enum GameState
-{
-    MainMenu,
-    Pause,
-    Restart,
-    InGame,
-    GameOver
+    public void ChangeState(IGameState newState)
+    {
+        if (_currentState != null) Debug.Log(GetCurrentState().ToString());
+        Debug.Log(newState.ToString());
+        _currentState?.Exit();
+        _currentState = newState;
+        _currentState?.Enter();
+    }
+
+    public void RestartGame()
+    {
+        Time = _defaultTime;
+        Score = 0;
+        FishSpawner.ReturnAllFishToPool();
+        ChangeState(new InGameState(this));
+    }
+
+    public void NewGame()
+    {
+        Time = _defaultTime;
+        Score = 0;
+        FishSpawner.ReturnAllFishToPool();
+    }
+
+    public IGameState GetCurrentState()
+    {
+        return _currentState;
+    }
+
 }
